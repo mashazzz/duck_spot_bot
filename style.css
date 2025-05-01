@@ -1,0 +1,45 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #222;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  justify-content: center;
+}
+.camera-area {
+  position: relative;
+  width: 320px;
+  height: 400px;
+}
+#video {
+  width: 320px;
+  height: 400px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+#mask {
+  position: absolute;
+  top: 0; left: 0;
+  width: 320px;
+  height: 200px; /* Маска на пол-экрана */
+  opacity: 0.7;
+  pointer-events: none;
+  border-radius: 12px 12px 0 0;
+}
+#capture {
+  margin-top: 20px;
+  padding: 10px 30px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background: #ffeb3b;
+  color: #333;
+  cursor: pointer;
+  font-weight: bold;
+}
