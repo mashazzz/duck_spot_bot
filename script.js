@@ -1,66 +1,62 @@
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("DOM загружен, мини-эпп готов");
-
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const captureBtn = document.getElementById('capture');
   const tg = window.Telegram.WebApp;
 
-  // Инициализация Telegram WebApp API
-  if (tg && tg.ready) {
-    tg.ready();
-  }
+  // Инициализация WebApp API
+  tg.ready();
 
-  // Функция для запуска камеры
+  // Запуск камеры
   function startCamera() {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
       .then(stream => {
         video.srcObject = stream;
-        console.log("Камера успешно включена");
+        console.log("Камера включена");
       })
       .catch(err => {
         alert("Не удалось включить камеру: " + err);
-        console.error("Ошибка камеры:", err);
       });
   }
 
-  // Запускаем камеру при каждом открытии мини-эппа
   startCamera();
 
-  // Обработчик нажатия кнопки
+  // Обработка кнопки "Сделать фото"
   captureBtn.onclick = function() {
     try {
-      console.log("Кнопка нажата");
-
-      // Рисуем текущий кадр на canvas
+      // Создаем снимок
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Получаем base64-строку изображения с качеством 0.5
-      const photoData = canvas.toDataURL('image/jpeg', 0.5);
-      console.log("Фото получено");
-
-      // Проверяем доступность API Telegram
-      if (tg && tg.sendData) {
-        tg.sendData(photoData);
-        console.log("Данные отправлены в бота");
-
-        // Останавливаем камеру
-        if (video.srcObject) {
-          video.srcObject.getTracks().forEach(track => track.stop());
-          console.log("Камера остановлена");
+      
+      // Получаем фото и создаем уникальный ID
+      const photoData = canvas.toDataURL('image/jpeg', 0.7);
+      const photoId = "photo_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+      
+      // Отправляем на сервер через AJAX
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "save_photo.php", true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            // Отправляем только ID фото в бота
+            tg.sendData(photoId);
+            // Останавливаем камеру и закрываем мини-эпп
+            video.srcObject.getTracks().forEach(track => track.stop());
+            tg.close();
+          } else {
+            alert("Ошибка при сохранении фото");
+          }
         }
-
-        // Закрываем мини-эпп
-        tg.close();
-      } else {
-        alert("Ошибка: Telegram WebApp API недоступен. Убедитесь, что мини-эпп открыт из Telegram.");
-        console.error("Telegram WebApp API недоступен");
-      }
+      };
+      
+      xhr.send(JSON.stringify({
+        photoData: photoData,
+        photoId: photoId
+      }));
     } catch (error) {
-      alert("Произошла ошибка: " + error.message);
-      console.error("Ошибка при обработке фото:", error);
+      alert("Ошибка: " + error.message);
     }
   };
 });
