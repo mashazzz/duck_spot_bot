@@ -29,7 +29,7 @@ captureBtn.onclick = function() {
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
     
     // Получаем base64-строку изображения
-    const photoData = canvas.toDataURL('image/jpeg');
+    const photoData = canvas.toDataURL('image/jpeg', 0.5));
     console.log("Фото получено");
     
     // Проверяем доступность API Telegram
