@@ -1,62 +1,88 @@
 document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM загружен, мини-эпп готов");
+
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const captureBtn = document.getElementById('capture');
   const tg = window.Telegram.WebApp;
 
-  // Инициализация WebApp API
-  tg.ready();
+  // Инициализация Telegram WebApp API
+  if (tg && tg.ready) {
+    tg.ready();
+  }
 
-  // Запуск камеры
+  // Функция для запуска камеры
   function startCamera() {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
       .then(stream => {
         video.srcObject = stream;
-        console.log("Камера включена");
+        console.log("Камера успешно включена");
       })
       .catch(err => {
         alert("Не удалось включить камеру: " + err);
+        console.error("Ошибка камеры:", err);
       });
   }
 
+  // Запускаем камеру при каждом открытии мини-эппа
   startCamera();
 
-  // Обработка кнопки "Сделать фото"
+  // Обработчик нажатия кнопки
   captureBtn.onclick = function() {
     try {
-      // Создаем снимок
+      console.log("Кнопка нажата");
+
+      // Рисуем текущий кадр на canvas
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Получаем фото и создаем уникальный ID
+
+      // Генерируем уникальный ID для фото
+      const photoId = "photo_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      console.log("Сгенерирован ID: " + photoId);
+
+      // Получаем base64-строку изображения
       const photoData = canvas.toDataURL('image/jpeg', 0.7);
-      const photoId = "photo_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
       
-      // Отправляем на сервер через AJAX
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "save_photo.php", true);
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            // Отправляем только ID фото в бота
-            tg.sendData(photoId);
-            // Останавливаем камеру и закрываем мини-эпп
+      // Отправляем фото на сервер
+      fetch('/duck_spot_bot/upload_photo.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          photo_id: photoId,
+          photo_data: photoData
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Фото загружено на сервер:", data);
+        
+        // Отправляем только ID фото в бота
+        if (tg && tg.sendData) {
+          tg.sendData(photoId);
+          console.log("ID фото отправлен в бота");
+          
+          // Останавливаем камеру
+          if (video.srcObject) {
             video.srcObject.getTracks().forEach(track => track.stop());
-            tg.close();
-          } else {
-            alert("Ошибка при сохранении фото");
           }
+          
+          // Закрываем мини-эпп
+          tg.close();
+        } else {
+          alert("Ошибка: Telegram WebApp API недоступен");
         }
-      };
+      })
+      .catch(error => {
+        alert("Ошибка загрузки фото на сервер: " + error.message);
+        console.error("Ошибка загрузки:", error);
+      });
       
-      xhr.send(JSON.stringify({
-        photoData: photoData,
-        photoId: photoId
-      }));
     } catch (error) {
-      alert("Ошибка: " + error.message);
+      alert("Произошла ошибка: " + error.message);
+      console.error("Ошибка при обработке фото:", error);
     }
   };
 });
