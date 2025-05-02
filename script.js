@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const photoData = canvas.toDataURL('image/jpeg', 0.7);
       
       // Отправляем фото на сервер
-      fetch('/duck_spot_bot/upload_photo.php', {
+      fetch('/duck_spot_bot/save_photo.php', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
